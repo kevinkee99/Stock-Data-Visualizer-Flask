@@ -91,10 +91,6 @@ def filter_data_by_date(data, time_key, time_series, start_date, end_date):
     # i outlines what all it should take and a general format. 
 
 # Bar Chart (Option 1)
-dimport pygal
-import os
-import webbrowser
-
 def create_chart(ticker, chart_type, filtered_data, start_date, end_date):
     if not filtered_data:
         print("No data available for the selected date range.")

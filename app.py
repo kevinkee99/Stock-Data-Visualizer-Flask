@@ -91,6 +91,10 @@ def filter_data_by_date(data, time_key, time_series, start_date, end_date):
     # i outlines what all it should take and a general format. 
 
 # Bar Chart (Option 1)
+dimport pygal
+import os
+import webbrowser
+
 def create_chart(ticker, chart_type, filtered_data, start_date, end_date):
     if not filtered_data:
         print("No data available for the selected date range.")
@@ -103,36 +107,39 @@ def create_chart(ticker, chart_type, filtered_data, start_date, end_date):
     dates = sorted(filtered_data.keys())  # Sorting ensures chronological order
     values = [float(filtered_data[date]["1. open"]) for date in dates if start_date <= date <= end_date]
 
-    # Initialize chart variable
-    chart = None
+    if chart_type == "1":  # Bar chart
+        bar_chart = pygal.Bar()
+        bar_chart.title = title
+        bar_chart.x_labels = map(str, dates)  # Use dates as x labels
+        bar_chart.add('Opening Price', values)
 
-    # Bar Chart (Option 1)
-    if chart_type == "1":
-        chart = pygal.Bar(x_label_rotation=45, show_minor_x_labels=False)
-        chart.title = title
-        chart.x_labels = dates
-        chart.add('Opening Price', values)
+        # Save and open the chart
+        chart_file = f"{ticker}_chart.svg"
+        bar_chart.render_to_file(chart_file)
 
-    # Line Chart (Option 2)
-    elif chart_type == "2":
-        chart = pygal.Line(x_label_rotation=45, show_minor_x_labels=False)
-        chart.title = title
-        chart.x_labels = dates
-        chart.add('Opening Price', values)
+        file_path = os.path.abspath(chart_file)
+        webbrowser.open('file://' + file_path)
+        
+        print(f"Bar chart generated and saved as {chart_file}")
 
-    # If neither chart type 1 nor 2 is selected, print an error
-    if chart is None:
+    elif chart_type == "2":  # Line chart
+        line_chart = pygal.Line()
+        line_chart.title = title
+        line_chart.x_labels = map(str, dates)
+        line_chart.add('Opening Price', values)
+
+        # Save and open the chart
+        chart_file = f"{ticker}_chart.svg"
+        line_chart.render_to_file(chart_file)
+
+        file_path = os.path.abspath(chart_file)
+        webbrowser.open('file://' + file_path)
+
+        print(f"Line chart generated and saved as {chart_file}")
+
+    else:
         print("Invalid chart type selected. Please choose 1 for Bar Chart or 2 for Line Chart.")
-        return
-    
-    # Save and open the chart
-    chart_file = f"{ticker}_chart.svg"
-    chart.render_to_file(chart_file)
 
-    file_path = os.path.abspath(chart_file)
-    webbrowser.open('file://' + file_path)
-    
-    print(f"Chart generated and saved as {chart_file}")
 
 
     # and if chart type is 2 then = line 

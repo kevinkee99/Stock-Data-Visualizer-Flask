@@ -6,22 +6,55 @@ import os
 # fx that handles user input, returns ticker, chart type, time start/end
 def get_user_input():
     print("Welcome to the Alphavantage Stock Data Visualizer\n")
-    ticker = input("Enter stock ticker: ")
+
+    while True:
+        ticker = input("Enter the stock symbol you are looking for: ").strip()
+        
+        if ticker:
+            break
+        else:
+            print("Ticker cannot be empty. Please enter a valid stock symbol.")
     
-    print("Enter chart type: ")
-    print("1. Bar")
-    print("2. Line")
-    chart_type = input("Enter type of chart you want, 1 or 2: ")
+    while True:
+        print("Chart Types")
+        print("---------")
+        print("1. Bar")
+        print("2. Line")
+        chart_type = input("Enter the chart type you want (1, 2): ")
+        
+        if chart_type in ["1", "2"]:
+            break
+        else:
+            print("Invalid input. Please enter 1 for Bar or 2 for Line.")
+
+    while True:
+        print("\nSelect the time series of the chart you want to generate")
+        print("---------------------------------------")
+        print("1. intraday")
+        print("2. daily")
+        print("3. weekly")
+        print("4. monthly")
+        time_series = input("Enter the time series option (1, 2, 3, 4): ")
+        
+        if time_series in ["1", "2", "3", "4"]:
+            break
+        else:
+            print("Invalid input. Please select 1, 2, 3, or 4 for time series.")
     
-    print("\nSelect the time series you want")
-    print("1. intraday")
-    print("2. daily")
-    print("3. weekly")
-    print("4. monthly")
-    time_series = input("Enter the time series option, 1,2,3,4: ")
-    
-    start_date = input("\nEnter the start date (YYYY-MM-DD): ")
-    end_date = input("Enter the end date (YYYY-MM-DD): ")
+    while True:
+        start_date = input("\nEnter the start date (YYYY-MM-DD): ")
+        end_date = input("Enter the end date (YYYY-MM-DD): ")
+        try:
+            from datetime import datetime
+            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
+            end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
+            
+            if start_date_obj <= end_date_obj:
+                break
+            else:
+                print("End date must be after start date. Please try again.")
+        except ValueError:
+            print("Invalid date format. Please enter dates in YYYY-MM-DD format.")
     
     return ticker, chart_type, time_series, start_date, end_date
 
@@ -106,7 +139,7 @@ def create_chart(ticker, chart_type, filtered_data, start_date, end_date):
     if chart_type == "1":  # Bar chart
         bar_chart = pygal.Bar()
         bar_chart.title = title
-        bar_chart.x_labels = map(str, dates)  # Use dates as x labels
+        bar_chart.x_labels = map(str, dates)
         bar_chart.add('Opening Price', values)
 
         # Save and open the chart

@@ -67,7 +67,7 @@ def get_stock_data(ticker, time_series):
     # THis is the part that actually gets the data
     response = requests.get(url, params=params)
     data = response.json()
-    
+
     return data, time_key
 
 # fx to handle the data by the date and series
@@ -118,7 +118,7 @@ def create_chart(ticker, chart_type, filtered_data, start_date, end_date):
         
         print(f"Bar chart generated and saved as {chart_file}")
 
-    elif chart_type == "2":  # Line chart
+    elif chart_type == "2":  # Line chart - needs to be fixed
         line_chart = pygal.Line()
         line_chart.title = title
         line_chart.x_labels = map(str, dates)
@@ -135,8 +135,6 @@ def create_chart(ticker, chart_type, filtered_data, start_date, end_date):
 
     else:
         print("Invalid chart type selected. Please choose 1 for Bar Chart or 2 for Line Chart.")
-
-
 
     # and if chart type is 2 then = line 
 

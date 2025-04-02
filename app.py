@@ -5,10 +5,10 @@ import os
 
 # fx that handles user input, returns ticker, chart type, time start/end
 def get_user_input():
-    print("\nWelcome to the Alphavantage Stock Data Visualizer\n")
+    print("Welcome to the Alphavantage Stock Data Visualizer\n")
     ticker = input("Enter stock ticker: ")
     
-    print("\Enter chart type: ")
+    print("Enter chart type: ")
     print("1. Bar")
     print("2. Line")
     chart_type = input("Enter type of chart you want, 1 or 2: ")
@@ -89,9 +89,52 @@ def filter_data_by_date(data, time_key, time_series, start_date, end_date):
 
 # fx that renders out chart. will handle both bar and line charts. 
     # i outlines what all it should take and a general format. 
-def create_chart(ticker, chart_type, filtered_data, time_series, start_date, end_date):
 
-    # here, you will put something like if chart type 1 then = bar
+# Bar Chart (Option 1)
+def create_chart(ticker, chart_type, filtered_data, start_date, end_date):
+    if not filtered_data:
+        print("No data available for the selected date range.")
+        return
+
+    # Chart title
+    title = f"{ticker} Stock Prices ({start_date} to {end_date})"
+
+    # Extract dates and values
+    dates = sorted(filtered_data.keys())  # Sorting ensures chronological order
+    values = [float(filtered_data[date]["1. open"]) for date in dates if start_date <= date <= end_date]
+
+    # Initialize chart variable
+    chart = None
+
+    # Bar Chart (Option 1)
+    if chart_type == "1":
+        chart = pygal.Bar(x_label_rotation=45, show_minor_x_labels=False)
+        chart.title = title
+        chart.x_labels = dates
+        chart.add('Opening Price', values)
+
+    # Line Chart (Option 2)
+    elif chart_type == "2":
+        chart = pygal.Line(x_label_rotation=45, show_minor_x_labels=False)
+        chart.title = title
+        chart.x_labels = dates
+        chart.add('Opening Price', values)
+
+    # If neither chart type 1 nor 2 is selected, print an error
+    if chart is None:
+        print("Invalid chart type selected. Please choose 1 for Bar Chart or 2 for Line Chart.")
+        return
+    
+    # Save and open the chart
+    chart_file = f"{ticker}_chart.svg"
+    chart.render_to_file(chart_file)
+
+    file_path = os.path.abspath(chart_file)
+    webbrowser.open('file://' + file_path)
+    
+    print(f"Chart generated and saved as {chart_file}")
+
+
     # and if chart type is 2 then = line 
 
     # create the chart using pygal. seek pygal docs for how to do this. 
@@ -101,20 +144,20 @@ def create_chart(ticker, chart_type, filtered_data, time_series, start_date, end
 
     # will need to use something like this V at the end of the code.
         # renders as svg that saves locally then opens in browser. this is how Culmer does it
-    chart_file = f"{ticker}_chart.svg"
-    chart.render_to_file(chart_file)
+    ####chart_file = f"{ticker}_chart.svg"
+    #chart.render_to_file(chart_file)
 
-    file_path = os.path.abspath(chart_file)
-    webbrowser.open('file://' + file_path)
+    #file_path = os.path.abspath(chart_file)
+    #webbrowser.open('file://' + file_path)
     
-    print("chart fx not yet implemented")
+    #print("chart fx not yet implemented")
 
 # this is the main function that runs the program
 def main():
     ticker, chart_type, time_series, start_date, end_date = get_user_input()
     data, time_key = get_stock_data(ticker, time_series)
     filtered_data = filter_data_by_date(data, time_key, time_series, start_date, end_date)
-    create_chart(ticker, chart_type, filtered_data, time_series, start_date, end_date)
+    create_chart(ticker, chart_type, filtered_data, start_date, end_date)
 
 if __name__ == "__main__":
     main()

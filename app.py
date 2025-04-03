@@ -97,7 +97,7 @@ def get_stock_data(ticker, time_series):
             "apikey": api_key
         }
     
-    # THis is the part that actually gets the data
+    # This is the part that actually gets the data
     response = requests.get(url, params=params)
     data = response.json()
 
@@ -120,88 +120,61 @@ def filter_data_by_date(data, time_key, time_series, start_date, end_date):
     
     return filtered_data
 
-# fx that renders out chart. will handle both bar and line charts. 
-    # i outlines what all it should take and a general format. 
 def create_chart(ticker, chart_type, filtered_data, time_series, start_date, end_date):
-    chart_title = f"{ticker} Stock Prices from {start_date} to {end_date}"
-
-# Bar Chart (Option 1)
-def create_chart(ticker, chart_type, filtered_data, start_date, end_date):
     if not filtered_data:
         print("No data available for the selected date range.")
         return
 
     # Chart title
-    title = f"{ticker} Stock Prices ({start_date} to {end_date})"
+    chart_title = f"{ticker} Stock Prices ({start_date} to {end_date})"
 
-    # Extract dates and values
+    # Extract dates and closing prices
     dates = sorted(filtered_data.keys())  # Sorting ensures chronological order
-    values = [float(filtered_data[date]["1. open"]) for date in dates if start_date <= date <= end_date]
+    closing_prices = []
 
-    if chart_type == "1":  # Bar chart
-        bar_chart = pygal.Bar()
-        bar_chart.title = title
-        bar_chart.x_labels = map(str, dates)
-        bar_chart.add('Opening Price', values)
-
-        # Save and open the chart
-        chart_file = f"{ticker}_chart.svg"
-        bar_chart.render_to_file(chart_file)
-
-        file_path = os.path.abspath(chart_file)
-        webbrowser.open('file://' + file_path)
+    for date in dates:
+        close_key = "4. close"
+        if close_key not in filtered_data[date]:
+            close_key = "4. Close"  # Handle possible variations in key naming
         
-        print(f"Bar chart generated and saved as {chart_file}")
+        closing_prices.append(float(filtered_data[date][close_key]))
 
-    elif chart_type == "2":  # Line chart - needs to be fixed
-        line_chart = pygal.Line()
-        line_chart.title = title
-        line_chart.x_labels = map(str, dates)
-        line_chart.add('Opening Price', values)
-
-        # Save and open the chart
-        chart_file = f"{ticker}_chart.svg"
-        line_chart.render_to_file(chart_file)
-
-        file_path = os.path.abspath(chart_file)
-        webbrowser.open('file://' + file_path)
-
-        print(f"Line chart generated and saved as {chart_file}")
-
+    # Determine chart type
+    if chart_type == "1":  # Bar chart
+        chart = pygal.Bar(x_label_rotation=45)
+    elif chart_type == "2":  # Line chart
+        chart = pygal.Line(x_label_rotation=45)
     else:
         print("Invalid chart type selected. Please choose 1 for Bar Chart or 2 for Line Chart.")
+        return
 
-    # and if chart type is 2 then = line 
-    if chart_type == "1":
-        chart = pygal.Bar(x_label_rotation=45)
-    else:
-        chart = pygal.Line(x_label_rotation=45)
-
-    # create the chart using pygal. seek pygal docs for how to do this. 
-        # needs to take a title, start/end, filtered data as a dict, and more
-    # will prob need timeseries ref from above too
+    # Set chart attributes
     chart.title = chart_title
-    chart.x_labels = [str(date) for date in sorted(filtered_data.keys())]
-    chart.add(ticker, [filtered_data[date] for date in sorted(filtered_data.keys())])
+    chart.x_labels = [str(date) for date in dates]
+    chart.add('Closing Price', closing_prices)
 
+    # Save to Downloads folder
+    downloads_path = os.path.expanduser("~/Downloads/")
+    chart_file = os.path.join(downloads_path, f"{ticker}_chart.svg")
+    chart.render_to_file(chart_file)
 
+    # Open the chart file in the browser
+    webbrowser.open(f'file://{chart_file}')
 
-    # will need to use something like this V at the end of the code.
-        # renders as svg that saves locally then opens in browser. this is how Culmer does it
-    ####chart_file = f"{ticker}_chart.svg"
-    #chart.render_to_file(chart_file)
-
-    #file_path = os.path.abspath(chart_file)
-    #webbrowser.open('file://' + file_path)
+    print(f"Chart generated and saved as {chart_file}")
     
-    #print("chart fx not yet implemented")
+    # Prompt user if they want to view more stock data
+    view_more = input("Do you want to view more stock data? (press y to continue, or anything else to end): ").strip().lower()
+    if view_more != "y":
+        print("Thank you for using the Alphavantage Stock Data Visualizer!")
+        exit()
 
 # this is the main function that runs the program
 def main():
     ticker, chart_type, time_series, start_date, end_date = get_user_input()
     data, time_key = get_stock_data(ticker, time_series)
     filtered_data = filter_data_by_date(data, time_key, time_series, start_date, end_date)
-    create_chart(ticker, chart_type, filtered_data, start_date, end_date)
+    create_chart(ticker, chart_type, filtered_data, time_series, start_date, end_date)
 
 if __name__ == "__main__":
     main()

@@ -90,13 +90,22 @@ def filter_data_by_date(data, time_key, time_series, start_date, end_date):
 # fx that renders out chart. will handle both bar and line charts. 
     # i outlines what all it should take and a general format. 
 def create_chart(ticker, chart_type, filtered_data, time_series, start_date, end_date):
+    chart_title = f"{ticker} Stock Prices from {start_date} to {end_date}"
 
     # here, you will put something like if chart type 1 then = bar
     # and if chart type is 2 then = line 
+    if chart_type == "1":
+        chart = pygal.Bar(x_label_rotation=45)
+    else:
+        chart = pygal.Line(x_label_rotation=45)
 
     # create the chart using pygal. seek pygal docs for how to do this. 
         # needs to take a title, start/end, filtered data as a dict, and more
     # will prob need timeseries ref from above too
+    chart.title = chart_title
+    chart.x_labels = [str(date) for date in sorted(filtered_data.keys())]
+    chart.add(ticker, [filtered_data[date] for date in sorted(filtered_data.keys())])
+
 
 
     # will need to use something like this V at the end of the code.

@@ -135,7 +135,7 @@ def create_chart(ticker, chart_type, filtered_data, time_series, start_date, end
     for date in dates:
         close_key = "4. close"
         if close_key not in filtered_data[date]:
-            close_key = "4. Close"  # Handle possible variations in key naming
+            close_key = "4. Close" 
         
         closing_prices.append(float(filtered_data[date][close_key]))
 
@@ -153,7 +153,7 @@ def create_chart(ticker, chart_type, filtered_data, time_series, start_date, end
     chart.x_labels = [str(date) for date in dates]
     chart.add('Closing Price', closing_prices)
 
-    # Save to Downloads folder
+    # Save to Downloads folder and open in browser
     downloads_path = os.path.expanduser("~/Downloads/")
     chart_file = os.path.join(downloads_path, f"{ticker}_chart.svg")
     chart.render_to_file(chart_file)
@@ -164,10 +164,11 @@ def create_chart(ticker, chart_type, filtered_data, time_series, start_date, end
     print(f"Chart generated and saved as {chart_file}")
     
     # Prompt user if they want to view more stock data
-    view_more = input("Do you want to view more stock data? (press y to continue, or anything else to end): ").strip().lower()
-    if view_more != "y":
+    view_more = input("Do you want to view more stock data? (press y to continue): ").strip().lower()
+    if view_more == "y":
+        main()  # Restart the process from the top
+    else:
         print("Thank you for using the Alphavantage Stock Data Visualizer!")
-        exit()
 
 # this is the main function that runs the program
 def main():

@@ -5,23 +5,56 @@ import os
 
 # fx that handles user input, returns ticker, chart type, time start/end
 def get_user_input():
-    print("\nWelcome to the Alphavantage Stock Data Visualizer\n")
-    ticker = input("Enter stock ticker: ")
+    print("Welcome to the Alphavantage Stock Data Visualizer\n")
+
+    while True:
+        ticker = input("Enter the stock symbol you are looking for: ").strip()
+        
+        if ticker:
+            break
+        else:
+            print("Ticker cannot be empty. Please enter a valid stock symbol.")
     
-    print("\Enter chart type: ")
-    print("1. Bar")
-    print("2. Line")
-    chart_type = input("Enter type of chart you want, 1 or 2: ")
+    while True:
+        print("Chart Types")
+        print("---------")
+        print("1. Bar")
+        print("2. Line")
+        chart_type = input("Enter the chart type you want (1, 2): ")
+        
+        if chart_type in ["1", "2"]:
+            break
+        else:
+            print("Invalid input. Please enter 1 for Bar or 2 for Line.")
+
+    while True:
+        print("\nSelect the time series of the chart you want to generate")
+        print("---------------------------------------")
+        print("1. intraday")
+        print("2. daily")
+        print("3. weekly")
+        print("4. monthly")
+        time_series = input("Enter the time series option (1, 2, 3, 4): ")
+        
+        if time_series in ["1", "2", "3", "4"]:
+            break
+        else:
+            print("Invalid input. Please select 1, 2, 3, or 4 for time series.")
     
-    print("\nSelect the time series you want")
-    print("1. intraday")
-    print("2. daily")
-    print("3. weekly")
-    print("4. monthly")
-    time_series = input("Enter the time series option, 1,2,3,4: ")
-    
-    start_date = input("\nEnter the start date (YYYY-MM-DD): ")
-    end_date = input("Enter the end date (YYYY-MM-DD): ")
+    while True:
+        start_date = input("\nEnter the start date (YYYY-MM-DD): ")
+        end_date = input("Enter the end date (YYYY-MM-DD): ")
+        try:
+            from datetime import datetime
+            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
+            end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
+            
+            if start_date_obj <= end_date_obj:
+                break
+            else:
+                print("End date must be after start date. Please try again.")
+        except ValueError:
+            print("Invalid date format. Please enter dates in YYYY-MM-DD format.")
     
     return ticker, chart_type, time_series, start_date, end_date
 
@@ -67,7 +100,7 @@ def get_stock_data(ticker, time_series):
     # THis is the part that actually gets the data
     response = requests.get(url, params=params)
     data = response.json()
-    
+
     return data, time_key
 
 # fx to handle the data by the date and series
@@ -92,7 +125,52 @@ def filter_data_by_date(data, time_key, time_series, start_date, end_date):
 def create_chart(ticker, chart_type, filtered_data, time_series, start_date, end_date):
     chart_title = f"{ticker} Stock Prices from {start_date} to {end_date}"
 
-    # here, you will put something like if chart type 1 then = bar
+# Bar Chart (Option 1)
+def create_chart(ticker, chart_type, filtered_data, start_date, end_date):
+    if not filtered_data:
+        print("No data available for the selected date range.")
+        return
+
+    # Chart title
+    title = f"{ticker} Stock Prices ({start_date} to {end_date})"
+
+    # Extract dates and values
+    dates = sorted(filtered_data.keys())  # Sorting ensures chronological order
+    values = [float(filtered_data[date]["1. open"]) for date in dates if start_date <= date <= end_date]
+
+    if chart_type == "1":  # Bar chart
+        bar_chart = pygal.Bar()
+        bar_chart.title = title
+        bar_chart.x_labels = map(str, dates)
+        bar_chart.add('Opening Price', values)
+
+        # Save and open the chart
+        chart_file = f"{ticker}_chart.svg"
+        bar_chart.render_to_file(chart_file)
+
+        file_path = os.path.abspath(chart_file)
+        webbrowser.open('file://' + file_path)
+        
+        print(f"Bar chart generated and saved as {chart_file}")
+
+    elif chart_type == "2":  # Line chart - needs to be fixed
+        line_chart = pygal.Line()
+        line_chart.title = title
+        line_chart.x_labels = map(str, dates)
+        line_chart.add('Opening Price', values)
+
+        # Save and open the chart
+        chart_file = f"{ticker}_chart.svg"
+        line_chart.render_to_file(chart_file)
+
+        file_path = os.path.abspath(chart_file)
+        webbrowser.open('file://' + file_path)
+
+        print(f"Line chart generated and saved as {chart_file}")
+
+    else:
+        print("Invalid chart type selected. Please choose 1 for Bar Chart or 2 for Line Chart.")
+
     # and if chart type is 2 then = line 
     if chart_type == "1":
         chart = pygal.Bar(x_label_rotation=45)
@@ -110,20 +188,20 @@ def create_chart(ticker, chart_type, filtered_data, time_series, start_date, end
 
     # will need to use something like this V at the end of the code.
         # renders as svg that saves locally then opens in browser. this is how Culmer does it
-    chart_file = f"{ticker}_chart.svg"
-    chart.render_to_file(chart_file)
+    ####chart_file = f"{ticker}_chart.svg"
+    #chart.render_to_file(chart_file)
 
-    file_path = os.path.abspath(chart_file)
-    webbrowser.open('file://' + file_path)
+    #file_path = os.path.abspath(chart_file)
+    #webbrowser.open('file://' + file_path)
     
-    print("chart fx not yet implemented")
+    #print("chart fx not yet implemented")
 
 # this is the main function that runs the program
 def main():
     ticker, chart_type, time_series, start_date, end_date = get_user_input()
     data, time_key = get_stock_data(ticker, time_series)
     filtered_data = filter_data_by_date(data, time_key, time_series, start_date, end_date)
-    create_chart(ticker, chart_type, filtered_data, time_series, start_date, end_date)
+    create_chart(ticker, chart_type, filtered_data, start_date, end_date)
 
 if __name__ == "__main__":
     main()

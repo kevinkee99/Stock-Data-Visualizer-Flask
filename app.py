@@ -9,20 +9,17 @@ app = Flask(__name__)
 CHART_FOLDER = os.path.join('static', 'charts')
 os.makedirs(CHART_FOLDER, exist_ok=True)
 
-# Load ticker symbols from a CSV file
 def load_ticker_symbols(filename='stocks.csv'):
     tickers = []
     try:
         with open(filename, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                # Save both symbol and name
                 tickers.append({"symbol": row["Symbol"], "name": row["Name"]})
     except Exception as e:
         print(f"Error loading ticker symbols: {e}")
     return sorted(tickers, key=lambda x: x["symbol"])
 
-# Query the AlphaVantage API
 def get_stock_data(ticker, time_series):
     api_key = "JGSKV0LY50824HYL"
     url = "https://www.alphavantage.co/query"
@@ -66,7 +63,6 @@ def get_stock_data(ticker, time_series):
 
     return data, time_key
 
-# Filter stock data based on user-selected date range
 def filter_data_by_date(data, time_key, time_series, start_date, end_date):
     filtered_data = {}
 
@@ -81,7 +77,6 @@ def filter_data_by_date(data, time_key, time_series, start_date, end_date):
 
     return filtered_data
 
-# Generate chart and save to static folder
 def create_chart(ticker, chart_type, filtered_data, start_date, end_date, output_path):
     if not filtered_data:
         return None
@@ -127,7 +122,7 @@ def index():
             output_path = os.path.join(CHART_FOLDER, filename)
             chart_file = create_chart(ticker, chart_type, filtered_data, start_date, end_date, output_path)
             if chart_file:
-                chart_file = chart_file.replace("static/", "")  # for use in HTML
+                chart_file = chart_file.replace("static/", "")
 
         except Exception as e:
             error = f"Something went wrong: {str(e)}"

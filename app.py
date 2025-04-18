@@ -1,64 +1,28 @@
+from flask import Flask, render_template, request
 import requests
 import pygal
-import webbrowser
 import os
+import csv
+from datetime import datetime
 
-# fx that handles user input, returns ticker, chart type, time start/end
-def get_user_input():
-    print("Welcome to the Alphavantage Stock Data Visualizer\n")
+app = Flask(__name__)
+CHART_FOLDER = os.path.join('static', 'charts')
+os.makedirs(CHART_FOLDER, exist_ok=True)
 
-    while True:
-        ticker = input("Enter the stock symbol you are looking for: ").strip()
-        
-        if ticker:
-            break
-        else:
-            print("Ticker cannot be empty. Please enter a valid stock symbol.")
-    
-    while True:
-        print("Chart Types")
-        print("---------")
-        print("1. Bar")
-        print("2. Line")
-        chart_type = input("Enter the chart type you want (1, 2): ")
-        
-        if chart_type in ["1", "2"]:
-            break
-        else:
-            print("Invalid input. Please enter 1 for Bar or 2 for Line.")
+# Load ticker symbols from a CSV file
+def load_ticker_symbols(filename='stocks.csv'):
+    tickers = []
+    try:
+        with open(filename, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                # Save both symbol and name
+                tickers.append({"symbol": row["Symbol"], "name": row["Name"]})
+    except Exception as e:
+        print(f"Error loading ticker symbols: {e}")
+    return sorted(tickers, key=lambda x: x["symbol"])
 
-    while True:
-        print("\nSelect the time series of the chart you want to generate")
-        print("---------------------------------------")
-        print("1. intraday")
-        print("2. daily")
-        print("3. weekly")
-        print("4. monthly")
-        time_series = input("Enter the time series option (1, 2, 3, 4): ")
-        
-        if time_series in ["1", "2", "3", "4"]:
-            break
-        else:
-            print("Invalid input. Please select 1, 2, 3, or 4 for time series.")
-    
-    while True:
-        start_date = input("\nEnter the start date (YYYY-MM-DD): ")
-        end_date = input("Enter the end date (YYYY-MM-DD): ")
-        try:
-            from datetime import datetime
-            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
-            end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
-            
-            if start_date_obj <= end_date_obj:
-                break
-            else:
-                print("End date must be after start date. Please try again.")
-        except ValueError:
-            print("Invalid date format. Please enter dates in YYYY-MM-DD format.")
-    
-    return ticker, chart_type, time_series, start_date, end_date
-
-# fx that accesses the api. time series is tricky here
+# Query the AlphaVantage API
 def get_stock_data(ticker, time_series):
     api_key = "JGSKV0LY50824HYL"
     url = "https://www.alphavantage.co/query"
@@ -88,7 +52,7 @@ def get_stock_data(ticker, time_series):
             "symbol": ticker,
             "apikey": api_key
         }
-    else:  # time_series = 4
+    else:
         function = "TIME_SERIES_MONTHLY"
         time_key = "Monthly Time Series"
         params = {
@@ -97,85 +61,78 @@ def get_stock_data(ticker, time_series):
             "apikey": api_key
         }
     
-    # This is the part that actually gets the data
     response = requests.get(url, params=params)
     data = response.json()
 
     return data, time_key
 
-# fx to handle the data by the date and series
+# Filter stock data based on user-selected date range
 def filter_data_by_date(data, time_key, time_series, start_date, end_date):
     filtered_data = {}
-    
-    for date in data[time_key]:
+
+    for date in data.get(time_key, {}):
         if time_series == "1":
             date_only = date.split()[0]
-            
-            if date_only >= start_date and date_only <= end_date:
+            if start_date <= date_only <= end_date:
                 filtered_data[date] = data[time_key][date]
-        
         else:
-            if date >= start_date and date <= end_date:
+            if start_date <= date <= end_date:
                 filtered_data[date] = data[time_key][date]
-    
+
     return filtered_data
 
-def create_chart(ticker, chart_type, filtered_data, time_series, start_date, end_date):
+# Generate chart and save to static folder
+def create_chart(ticker, chart_type, filtered_data, start_date, end_date, output_path):
     if not filtered_data:
-        print("No data available for the selected date range.")
-        return
+        return None
 
-    # Chart title
-    chart_title = f"{ticker} Stock Prices ({start_date} to {end_date})"
-
-    # Extract dates and closing prices
-    dates = sorted(filtered_data.keys())  # Sorting ensures chronological order
+    dates = sorted(filtered_data.keys())
     closing_prices = []
 
     for date in dates:
         close_key = "4. close"
         if close_key not in filtered_data[date]:
-            close_key = "4. Close" 
-        
+            close_key = "4. Close"
         closing_prices.append(float(filtered_data[date][close_key]))
 
-    # Determine chart type
-    if chart_type == "1":  # Bar chart
-        chart = pygal.Bar(x_label_rotation=45)
-    elif chart_type == "2":  # Line chart
-        chart = pygal.Line(x_label_rotation=45)
-    else:
-        print("Invalid chart type selected. Please choose 1 for Bar Chart or 2 for Line Chart.")
-        return
-
-    # Set chart attributes
-    chart.title = chart_title
-    chart.x_labels = [str(date) for date in dates]
+    chart = pygal.Bar(x_label_rotation=45) if chart_type == "1" else pygal.Line(x_label_rotation=45)
+    chart.title = f"{ticker} Stock Prices ({start_date} to {end_date})"
+    chart.x_labels = dates
     chart.add('Closing Price', closing_prices)
+    chart.render_to_file(output_path)
 
-    # Save to Downloads folder and open in browser
-    downloads_path = os.path.expanduser("~/Downloads/")
-    chart_file = os.path.join(downloads_path, f"{ticker}_chart.svg")
-    chart.render_to_file(chart_file)
+    return output_path
 
-    # Open the chart file in the browser
-    webbrowser.open(f'file://{chart_file}')
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    tickers = load_ticker_symbols()
+    chart_file = None
+    error = None
 
-    print(f"Chart generated and saved as {chart_file}")
-    
-    # Prompt user if they want to view more stock data
-    view_more = input("Do you want to view more stock data? (press y to continue): ").strip().lower()
-    if view_more == "y":
-        main()  # Restart the process from the top
-    else:
-        print("Thank you for using the Alphavantage Stock Data Visualizer!")
+    if request.method == 'POST':
+        try:
+            ticker = request.form['ticker']
+            chart_type = request.form['chart_type']
+            time_series = request.form['time_series']
+            start_date = request.form['start_date']
+            end_date = request.form['end_date']
 
-# this is the main function that runs the program
-def main():
-    ticker, chart_type, time_series, start_date, end_date = get_user_input()
-    data, time_key = get_stock_data(ticker, time_series)
-    filtered_data = filter_data_by_date(data, time_key, time_series, start_date, end_date)
-    create_chart(ticker, chart_type, filtered_data, time_series, start_date, end_date)
+            datetime.strptime(start_date, "%Y-%m-%d")
+            datetime.strptime(end_date, "%Y-%m-%d")
 
-if __name__ == "__main__":
-    main()
+            data, time_key = get_stock_data(ticker, time_series)
+            filtered_data = filter_data_by_date(data, time_key, time_series, start_date, end_date)
+
+            filename = f"{ticker}_chart.svg"
+            output_path = os.path.join(CHART_FOLDER, filename)
+            chart_file = create_chart(ticker, chart_type, filtered_data, start_date, end_date, output_path)
+            if chart_file:
+                chart_file = chart_file.replace("static/", "")  # for use in HTML
+
+        except Exception as e:
+            error = f"Something went wrong: {str(e)}"
+
+    return render_template("index.html", tickers=tickers, chart_file=chart_file, error=error)
+
+if __name__ == '__main__':
+    app.run(host="0.0.0.0")
